@@ -36,6 +36,7 @@ const config = {
     'prop-types',
     'uuid',
     'deep-equal',
+    'tinycolor2',
   ],
   module: {
     rules: [
