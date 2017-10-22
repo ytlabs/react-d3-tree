@@ -5,12 +5,13 @@ import { layout, select, behavior, event } from 'd3';
 import clone from 'clone';
 import deepEqual from 'deep-equal';
 import uuid from 'uuid';
+import withStyles from 'isomorphic-style-loader/lib/withStyles';
 
 import Node from '../Node';
 import Link from '../Link';
-import './style.css';
+import s from './style.css';
 
-export default class Tree extends React.Component {
+class Tree extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -256,7 +257,7 @@ export default class Tree extends React.Component {
 
     return (
       <div className={`rd3t-tree-container ${zoomable ? 'rd3t-grabbable' : undefined}`}>
-        <svg className="rd3t-svg" width="100%" height="100%">
+        <svg className={s.rd3tsvg} width="100%" height="100%">
           <TransitionGroup
             component="g"
             className="rd3t-g"
@@ -363,3 +364,9 @@ Tree.propTypes = {
     links: PropTypes.object,
   }),
 };
+
+Tree.contextTypes = {
+  insertCss: PropTypes.func,
+};
+
+export default withStyles(s)(Tree);

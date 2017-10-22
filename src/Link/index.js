@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { svg, select } from 'd3';
 
-import './style.css';
+// import s from './style.css';
 
 export default class Link extends React.PureComponent {
   constructor(props) {

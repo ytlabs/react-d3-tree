@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import uuid from 'uuid';
 import { select } from 'd3';
 
-import './style.css';
+// import s from './style.css';
 
 export default class Node extends React.Component {
   constructor(props) {
