@@ -23,18 +23,30 @@ export default class Tree extends React.Component {
     this.handleOnClickCb = this.handleOnClickCb.bind(this);
   }
 
+  componentWillMount() {
+    this.setState({
+      tree: this.generateTree(),
+    });
+  }
+
   componentDidMount() {
     this.bindZoomListener(this.props);
     // TODO find better way of setting initialDepth, re-render here is suboptimal
     this.setState({ initialRender: false }); // eslint-disable-line
+    console.log(this.state);
   }
 
   componentWillReceiveProps(nextProps) {
     // Clone new data & assign internal properties
     if (!deepEqual(this.props.data, nextProps.data)) {
-      this.setState({
-        data: this.assignInternalProperties(clone(nextProps.data)),
-      });
+      console.log('new data');
+      this.setState(
+        {
+          initialRender: true,
+          data: this.assignInternalProperties(clone(nextProps.data)),
+        },
+        () => this.setState({ tree: this.generateTree() }),
+      );
     }
 
     // If zoom-specific props change -> rebind listener with new values
@@ -183,7 +195,12 @@ export default class Tree extends React.Component {
 
     if (this.props.collapsible) {
       targetNode._collapsed ? this.expandNode(targetNode) : this.collapseNode(targetNode);
-      this.setState({ data }, () => this.handleOnClickCb(targetNode));
+      this.setState({ data }, () => {
+        this.setState({
+          tree: this.generateTree(),
+        });
+        this.handleOnClickCb(targetNode);
+      });
     } else {
       this.handleOnClickCb(targetNode);
     }
@@ -228,6 +245,8 @@ export default class Tree extends React.Component {
 
     // set `initialDepth` on first render if specified
     if (initialDepth !== undefined && this.state.initialRender) {
+      console.log('setting initial tree depth...');
+      this.setState({ initialRender: false });
       this.setInitialTreeDepth(nodes, initialDepth);
     }
 
@@ -241,7 +260,7 @@ export default class Tree extends React.Component {
   }
 
   render() {
-    const { nodes, links } = this.generateTree();
+    const { nodes, links } = this.state.tree;
     const {
       nodeSvgShape,
       orientation,
@@ -259,7 +278,7 @@ export default class Tree extends React.Component {
     } = this.props;
 
     const subscriptions = { ...nodeSize, ...separation, depthFactor, initialDepth };
-
+    console.log(nodes);
     return (
       <div className={`rd3t-tree-container ${zoomable ? 'rd3t-grabbable' : undefined}`}>
         <svg className="rd3t-svg" width="100%" height="100%">
