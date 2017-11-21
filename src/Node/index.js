@@ -57,19 +57,21 @@ export default class Node extends React.Component {
     return orientation === 'horizontal' ? `translate(${y},${x})` : `translate(${x},${y})`;
   }
 
-  applyTransform(transform, transitionDuration, opacity = 1, done = () => {}) {
+  applyTransform(transform, transitionDuration, opacity = 1, done = () => {}, debounceOffset = 0) {
     if (transitionDuration === 0) {
       select(this.node)
         .attr('transform', transform)
         .style('opacity', opacity);
       done();
     } else {
-      select(this.node)
-        .transition()
-        .duration(transitionDuration)
-        .attr('transform', transform)
-        .style('opacity', opacity)
-        .each('end', done);
+      setTimeout(() => {
+        select(this.node)
+          .transition()
+          .duration(transitionDuration)
+          .attr('transform', transform)
+          .style('opacity', opacity)
+          .each('end', done);
+      }, this.props.debounceTimeout + debounceOffset);
     }
   }
 
@@ -86,12 +88,12 @@ export default class Node extends React.Component {
   }
 
   componentWillLeave(done) {
-    const { nodeData: { parent }, orientation, transitionDuration } = this.props;
+    const { nodeData: { parent }, orientation, transitionDuration, mapIndex } = this.props; // eslint-disable-line
     const originX = parent ? parent.x : 0;
     const originY = parent ? parent.y : 0;
     const transform = this.setTransformOrientation(originX, originY, orientation);
 
-    this.applyTransform(transform, transitionDuration, 0, done);
+    this.applyTransform(transform, transitionDuration, 0, done, mapIndex * 30);
   }
 
   render() {
@@ -151,6 +153,7 @@ export default class Node extends React.Component {
 }
 
 Node.defaultProps = {
+  debounceTimeout: 0,
   textAnchor: 'start',
   attributes: undefined,
   circleRadius: undefined,
@@ -174,6 +177,7 @@ Node.propTypes = {
   nodeSvgShape: PropTypes.object.isRequired,
   orientation: PropTypes.oneOf(['horizontal', 'vertical']).isRequired,
   transitionDuration: PropTypes.number.isRequired,
+  debounceTimeout: PropTypes.number,
   onClick: PropTypes.func.isRequired,
   onMouseOver: PropTypes.func.isRequired,
   onMouseOut: PropTypes.func.isRequired,

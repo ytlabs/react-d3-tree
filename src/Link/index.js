@@ -27,11 +27,13 @@ export default class Link extends React.PureComponent {
       select(this.link).style('opacity', opacity);
       done();
     } else {
-      select(this.link)
-        .transition()
-        .duration(transitionDuration)
-        .style('opacity', opacity)
-        .each('end', done);
+      setTimeout(() => {
+        select(this.link)
+          .transition()
+          .duration(transitionDuration)
+          .style('opacity', opacity)
+          .each('end', done);
+      }, this.props.debounceTimeout);
     }
   }
 
@@ -104,6 +106,7 @@ export default class Link extends React.PureComponent {
 }
 
 Link.defaultProps = {
+  debounceTimeout: 0,
   styles: {},
 };
 
@@ -115,5 +118,6 @@ Link.propTypes = {
     PropTypes.func,
   ]).isRequired,
   transitionDuration: PropTypes.number.isRequired,
+  debounceTimeout: PropTypes.number,
   styles: PropTypes.object,
 };
