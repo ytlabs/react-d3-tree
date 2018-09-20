@@ -111,8 +111,19 @@ export default class Node extends React.Component {
   }
 
   render() {
-    const { nodeData, nodeSize, nodeLabelComponent, allowForeignObjects, styles } = this.props;
-    const nodeStyle = nodeData._children ? { ...styles.node } : { ...styles.leafNode };
+    const {
+      nodeData,
+      nodeSize,
+      nodeLabelComponent,
+      nodeTooltipComponent,
+      allowForeignObjects,
+      styles,
+      selected,
+    } = this.props;
+    const selectStyle = selected ? { ...styles.selected } : {};
+    const nodeStyle = nodeData._children
+      ? { ...styles.node, ...selectStyle }
+      : { ...styles.leafNode, ...selectStyle };
     return (
       <g
         id={nodeData.id}
@@ -128,6 +139,16 @@ export default class Node extends React.Component {
       >
         {this.renderNodeElement(nodeStyle)}
 
+        {selected &&
+          allowForeignObjects &&
+          nodeTooltipComponent && (
+            <ForeignObjectElement
+              nodeData={nodeData}
+              nodeSize={nodeSize}
+              {...nodeTooltipComponent}
+            />
+          )}
+
         {allowForeignObjects && nodeLabelComponent ? (
           <ForeignObjectElement nodeData={nodeData} nodeSize={nodeSize} {...nodeLabelComponent} />
         ) : (
@@ -140,6 +161,7 @@ export default class Node extends React.Component {
 
 Node.defaultProps = {
   nodeLabelComponent: null,
+  nodeTooltipComponent: null,
   attributes: undefined,
   circleRadius: undefined,
   styles: {
@@ -153,13 +175,20 @@ Node.defaultProps = {
       name: {},
       attributes: {},
     },
+    selectStyle: {
+      circle: {},
+      name: {},
+      attributes: {},
+    },
   },
+  selected: false,
 };
 
 Node.propTypes = {
   nodeData: PropTypes.object.isRequired,
   nodeSvgShape: PropTypes.object.isRequired,
   nodeLabelComponent: PropTypes.object,
+  nodeTooltipComponent: PropTypes.object,
   nodeSize: PropTypes.object.isRequired,
   orientation: PropTypes.oneOf(['horizontal', 'vertical']).isRequired,
   transitionDuration: PropTypes.number.isRequired,
@@ -173,4 +202,5 @@ Node.propTypes = {
   allowForeignObjects: PropTypes.bool.isRequired,
   circleRadius: PropTypes.number,
   styles: PropTypes.object,
+  selected: PropTypes.bool,
 };

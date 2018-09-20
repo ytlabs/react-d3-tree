@@ -262,24 +262,30 @@ export default class Tree extends React.Component {
     const data = clone(this.state.data);
     const matches = this.findNodesById(nodeId, data, []);
     const targetNode = matches[0];
-
-    if (this.props.collapsible && !this.state.isTransitioning) {
-      if (targetNode._collapsed) {
-        this.expandNode(targetNode);
-        this.props.shouldCollapseNeighborNodes && this.collapseNeighborNodes(targetNode, data);
+    const previousNode = this.internalState.targetNode;
+    this.internalState.targetNode = targetNode;
+    if (this.handleOnClickCb(targetNode, evt, previousNode) !== false) {
+      if (this.props.collapsible && !this.state.isTransitioning) {
+        if (targetNode._collapsed) {
+          this.expandNode(targetNode);
+          this.props.shouldCollapseNeighborNodes && this.collapseNeighborNodes(targetNode, data);
+        } else {
+          this.collapseNode(targetNode);
+        }
+        // Lock node toggling while transition takes place
+        this.setState({ data, isTransitioning: true }, () =>
+          this.handleOnClickCompletedCb(targetNode, evt),
+        );
+        // Await transitionDuration + 10 ms before unlocking node toggling again
+        setTimeout(
+          () => this.setState({ isTransitioning: false }),
+          this.props.transitionDuration + 10,
+        );
       } else {
-        this.collapseNode(targetNode);
+        this.handleOnClickCompletedCb(targetNode, evt);
       }
-      // Lock node toggling while transition takes place
-      this.setState({ data, isTransitioning: true }, () => this.handleOnClickCb(targetNode, evt));
-      // Await transitionDuration + 10 ms before unlocking node toggling again
-      setTimeout(
-        () => this.setState({ isTransitioning: false }),
-        this.props.transitionDuration + 10,
-      );
-      this.internalState.targetNode = targetNode;
     } else {
-      this.handleOnClickCb(targetNode, evt);
+      this.handleOnClickCompletedCb(targetNode, evt);
     }
   }
 
@@ -288,12 +294,27 @@ export default class Tree extends React.Component {
    *
    * @param {object} targetNode Description
    *
-   * @return {void}
+   * @return {Boolean|void}
    */
-  handleOnClickCb(targetNode, evt) {
+  handleOnClickCb(targetNode, evt, previousNode) {
     const { onClick } = this.props;
     if (onClick && typeof onClick === 'function') {
-      onClick(clone(targetNode), evt);
+      return onClick(clone(targetNode), evt, clone(previousNode));
+    }
+    return true;
+  }
+
+  /**
+   * handleOnClickCompletedCb - Handles the user-defined `onClickCompleted` function
+   *
+   * @param {object} targetNode Description
+   *
+   * @return {void}
+   */
+  handleOnClickCompletedCb(targetNode, evt) {
+    const { onClickCompleted } = this.props;
+    if (onClickCompleted && typeof onClickCompleted === 'function') {
+      onClickCompleted(clone(targetNode), evt);
     }
   }
 
@@ -401,6 +422,7 @@ export default class Tree extends React.Component {
     const {
       nodeSvgShape,
       nodeLabelComponent,
+      nodeTooltipComponent,
       orientation,
       pathFunc,
       transitionDuration,
@@ -412,6 +434,7 @@ export default class Tree extends React.Component {
       separation,
       circleRadius,
       allowForeignObjects,
+      shouldHandleNodeSelection,
       styles,
     } = this.props;
     const { translate, scale } = this.internalState.d3;
@@ -443,6 +466,7 @@ export default class Tree extends React.Component {
                 key={nodeData.id}
                 nodeSvgShape={{ ...nodeSvgShape, ...nodeData.nodeSvgShape }}
                 nodeLabelComponent={nodeLabelComponent}
+                nodeTooltipComponent={nodeTooltipComponent}
                 nodeSize={nodeSize}
                 orientation={orientation}
                 transitionDuration={transitionDuration}
@@ -457,6 +481,12 @@ export default class Tree extends React.Component {
                 subscriptions={subscriptions}
                 allowForeignObjects={allowForeignObjects}
                 styles={styles.nodes}
+                selected={
+                  shouldHandleNodeSelection &&
+                  (this.internalState.targetNode
+                    ? this.internalState.targetNode.id === nodeData.id
+                    : false)
+                }
               />
             ))}
           </NodeWrapper>
@@ -474,7 +504,9 @@ Tree.defaultProps = {
     },
   },
   nodeLabelComponent: null,
+  nodeTooltipComponent: null,
   onClick: undefined,
+  onClickCompleted: undefined,
   onMouseOver: undefined,
   onMouseOut: undefined,
   onUpdate: undefined,
@@ -498,6 +530,7 @@ Tree.defaultProps = {
   },
   allowForeignObjects: false,
   shouldCollapseNeighborNodes: false,
+  shouldHandleNodeSelection: false,
   circleRadius: undefined, // TODO: DEPRECATE
   styles: {},
 };
@@ -509,7 +542,9 @@ Tree.propTypes = {
     shapeProps: PropTypes.object,
   }),
   nodeLabelComponent: PropTypes.object,
+  nodeTooltipComponent: PropTypes.object,
   onClick: PropTypes.func,
+  onClickCompleted: PropTypes.func,
   onMouseOver: PropTypes.func,
   onMouseOut: PropTypes.func,
   onUpdate: PropTypes.func,
@@ -543,6 +578,7 @@ Tree.propTypes = {
   textLayout: PropTypes.object,
   allowForeignObjects: PropTypes.bool,
   shouldCollapseNeighborNodes: PropTypes.bool,
+  shouldHandleNodeSelection: PropTypes.bool,
   circleRadius: PropTypes.number,
   styles: PropTypes.shape({
     nodes: PropTypes.object,
