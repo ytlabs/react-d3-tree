@@ -222,6 +222,11 @@ The following object shape is expected by `styles`:
       name: <svgStyleObject>,
       attributes: <svgStyleObject>,
     },
+    selectedNode: {
+      circle: <svgStyleObject>,
+      name: <svgStyleObject>,
+      attributes: <svgStyleObject>,
+    },
   },
 }
 ```

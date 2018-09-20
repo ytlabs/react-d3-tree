@@ -120,7 +120,7 @@ export default class Node extends React.Component {
       styles,
       selected,
     } = this.props;
-    const selectStyle = selected ? { ...styles.selected } : {};
+    const selectStyle = selected ? { ...styles.selectedNode } : {};
     const nodeStyle = nodeData._children
       ? { ...styles.node, ...selectStyle }
       : { ...styles.leafNode, ...selectStyle };
@@ -175,7 +175,7 @@ Node.defaultProps = {
       name: {},
       attributes: {},
     },
-    selectStyle: {
+    selectedNode: {
       circle: {},
       name: {},
       attributes: {},
