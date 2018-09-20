@@ -5,14 +5,15 @@ export const BASE_MARGIN = 24;
 
 export default class ForeignObjectElement extends React.PureComponent {
   render() {
-    const { nodeData, nodeSize, render, foreignObjectWrapper } = this.props;
+    const { nodeData, nodeSize, onDeselect, onClick, render, foreignObjectWrapper } = this.props;
     return (
       <foreignObject
         width={nodeSize.x - BASE_MARGIN}
         height={nodeSize.y - BASE_MARGIN}
         {...foreignObjectWrapper}
+        onClick={onClick}
       >
-        {React.cloneElement(render, { nodeData })}
+        {React.cloneElement(render, { nodeData, onDeselect })}
       </foreignObject>
     );
   }
@@ -20,6 +21,8 @@ export default class ForeignObjectElement extends React.PureComponent {
 
 ForeignObjectElement.defaultProps = {
   foreignObjectWrapper: {},
+  onDeselect: null,
+  onClick: null,
 };
 
 ForeignObjectElement.propTypes = {
@@ -30,4 +33,6 @@ ForeignObjectElement.propTypes = {
     y: PropTypes.number,
   }).isRequired,
   foreignObjectWrapper: PropTypes.object,
+  onDeselect: PropTypes.func,
+  onClick: PropTypes.func,
 };

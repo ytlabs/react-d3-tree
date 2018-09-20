@@ -31,8 +31,10 @@ export default class Tree extends React.Component {
     this.collapseNode = this.collapseNode.bind(this);
     this.handleNodeToggle = this.handleNodeToggle.bind(this);
     this.handleOnClickCb = this.handleOnClickCb.bind(this);
+    this.handleOnClickCompletedCb = this.handleOnClickCompletedCb.bind(this);
     this.handleOnMouseOverCb = this.handleOnMouseOverCb.bind(this);
     this.handleOnMouseOutCb = this.handleOnMouseOutCb.bind(this);
+    this.handleOnDeselectCb = this.handleOnDeselectCb.bind(this);
   }
 
   componentWillMount() {
@@ -52,12 +54,10 @@ export default class Tree extends React.Component {
 
     if (typeof this.props.onUpdate === 'function') {
       this.props.onUpdate({
-        node: this.internalState.targetNode ? clone(this.internalState.targetNode) : null,
+        node: this.state.targetNode ? clone(this.state.targetNode) : null,
         zoom: this.internalState.d3.scale,
         translate: this.internalState.d3.translate,
       });
-
-      this.internalState.targetNode = null;
     }
   }
 
@@ -66,6 +66,7 @@ export default class Tree extends React.Component {
     if (this.props.data !== nextProps.data) {
       this.setState({
         data: this.assignInternalProperties(clone(nextProps.data)),
+        targetNode: null,
       });
     }
 
@@ -262,8 +263,7 @@ export default class Tree extends React.Component {
     const data = clone(this.state.data);
     const matches = this.findNodesById(nodeId, data, []);
     const targetNode = matches[0];
-    const previousNode = this.internalState.targetNode;
-    this.internalState.targetNode = targetNode;
+    const previousNode = this.state.targetNode;
     if (this.handleOnClickCb(targetNode, evt, previousNode) !== false) {
       if (this.props.collapsible && !this.state.isTransitioning) {
         if (targetNode._collapsed) {
@@ -273,7 +273,7 @@ export default class Tree extends React.Component {
           this.collapseNode(targetNode);
         }
         // Lock node toggling while transition takes place
-        this.setState({ data, isTransitioning: true }, () =>
+        this.setState({ data, targetNode, isTransitioning: true }, () =>
           this.handleOnClickCompletedCb(targetNode, evt),
         );
         // Await transitionDuration + 10 ms before unlocking node toggling again
@@ -281,12 +281,10 @@ export default class Tree extends React.Component {
           () => this.setState({ isTransitioning: false }),
           this.props.transitionDuration + 10,
         );
-      } else {
-        this.handleOnClickCompletedCb(targetNode, evt);
+        return;
       }
-    } else {
-      this.handleOnClickCompletedCb(targetNode, evt);
     }
+    this.setState({ targetNode }, () => this.handleOnClickCompletedCb(targetNode, evt));
   }
 
   /**
@@ -350,6 +348,21 @@ export default class Tree extends React.Component {
       const targetNode = matches[0];
       onMouseOut(clone(targetNode), evt);
     }
+  }
+
+  /**
+   * handleOnDeselectCb - deselects the target node. calls `onDeselect`function
+   *
+   * @return {void}
+   */
+  handleOnDeselectCb() {
+    const previousNode = this.state.targetNode;
+    this.setState({ targetNode: null }, () => {
+      const { onDeselect } = this.props;
+      if (onDeselect && typeof onDeselect === 'function') {
+        onDeselect(previousNode);
+      }
+    });
   }
 
   /**
@@ -418,7 +431,7 @@ export default class Tree extends React.Component {
 
   render() {
     const { nodes, links } = this.generateTree();
-    const { rd3tSvgClassName, rd3tGClassName } = this.state;
+    const { rd3tSvgClassName, rd3tGClassName, targetNode } = this.state;
     const {
       nodeSvgShape,
       nodeLabelComponent,
@@ -438,8 +451,34 @@ export default class Tree extends React.Component {
       styles,
     } = this.props;
     const { translate, scale } = this.internalState.d3;
-
     const subscriptions = { ...nodeSize, ...separation, depthFactor, initialDepth };
+    if (targetNode) {
+      let targetIdx = -1;
+      nodes.some((node, idx) => {
+        if (node.id === targetNode.id) {
+          targetIdx = idx;
+          return true;
+        }
+        return false;
+      });
+      if (targetIdx > -1) nodes.splice(targetIdx, 1);
+    }
+
+    const nodeProps = {
+      nodeLabelComponent,
+      nodeTooltipComponent,
+      nodeSize,
+      orientation,
+      transitionDuration,
+      textLayout,
+      circleRadius,
+      subscriptions,
+      allowForeignObjects,
+      styles: styles.nodes,
+      onClick: this.handleNodeToggle,
+      onMouseOver: this.handleOnMouseOverCb,
+      onMouseOut: this.handleOnMouseOutCb,
+    };
 
     return (
       <div className={`rd3t-tree-container ${zoomable ? 'rd3t-grabbable' : undefined}`}>
@@ -465,30 +504,25 @@ export default class Tree extends React.Component {
               <Node
                 key={nodeData.id}
                 nodeSvgShape={{ ...nodeSvgShape, ...nodeData.nodeSvgShape }}
-                nodeLabelComponent={nodeLabelComponent}
-                nodeTooltipComponent={nodeTooltipComponent}
-                nodeSize={nodeSize}
-                orientation={orientation}
-                transitionDuration={transitionDuration}
                 nodeData={nodeData}
                 name={nodeData.name}
                 attributes={nodeData.attributes}
-                onClick={this.handleNodeToggle}
-                onMouseOver={this.handleOnMouseOverCb}
-                onMouseOut={this.handleOnMouseOutCb}
-                textLayout={textLayout}
-                circleRadius={circleRadius}
-                subscriptions={subscriptions}
-                allowForeignObjects={allowForeignObjects}
-                styles={styles.nodes}
-                selected={
-                  shouldHandleNodeSelection &&
-                  (this.internalState.targetNode
-                    ? this.internalState.targetNode.id === nodeData.id
-                    : false)
-                }
+                {...nodeProps}
               />
             ))}
+            {shouldHandleNodeSelection &&
+              targetNode && (
+                <Node
+                  key={targetNode.id}
+                  nodeSvgShape={{ ...nodeSvgShape, ...targetNode.nodeSvgShape }}
+                  nodeData={targetNode}
+                  name={targetNode.name}
+                  attributes={targetNode.attributes}
+                  selected
+                  onDeselect={this.handleOnDeselectCb}
+                  {...nodeProps}
+                />
+              )}
           </NodeWrapper>
         </svg>
       </div>
@@ -510,6 +544,7 @@ Tree.defaultProps = {
   onMouseOver: undefined,
   onMouseOut: undefined,
   onUpdate: undefined,
+  onDeselect: undefined,
   orientation: 'horizontal',
   translate: { x: 0, y: 0 },
   pathFunc: 'diagonal',
@@ -548,6 +583,7 @@ Tree.propTypes = {
   onMouseOver: PropTypes.func,
   onMouseOut: PropTypes.func,
   onUpdate: PropTypes.func,
+  onDeselect: PropTypes.func,
   orientation: PropTypes.oneOf(['horizontal', 'vertical']),
   translate: PropTypes.shape({
     x: PropTypes.number,

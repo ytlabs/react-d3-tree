@@ -119,6 +119,7 @@ export default class Node extends React.Component {
       allowForeignObjects,
       styles,
       selected,
+      onDeselect,
     } = this.props;
     const selectStyle = selected ? { ...styles.selectedNode } : {};
     const nodeStyle = nodeData._children
@@ -145,6 +146,8 @@ export default class Node extends React.Component {
             <ForeignObjectElement
               nodeData={nodeData}
               nodeSize={nodeSize}
+              onDeselect={onDeselect}
+              onClick={e => e.stopPropagation()}
               {...nodeTooltipComponent}
             />
           )}
@@ -164,6 +167,7 @@ Node.defaultProps = {
   nodeTooltipComponent: null,
   attributes: undefined,
   circleRadius: undefined,
+  onDeselect: null,
   styles: {
     node: {
       circle: {},
@@ -195,6 +199,7 @@ Node.propTypes = {
   onClick: PropTypes.func.isRequired,
   onMouseOver: PropTypes.func.isRequired,
   onMouseOut: PropTypes.func.isRequired,
+  onDeselect: PropTypes.func,
   name: PropTypes.string.isRequired,
   attributes: PropTypes.object,
   textLayout: PropTypes.object.isRequired,
