@@ -21,6 +21,7 @@ export default class Node extends React.Component {
     };
 
     this.handleClick = this.handleClick.bind(this);
+    this.handleContextMenu = this.handleContextMenu.bind(this);
     this.handleOnMouseOver = this.handleOnMouseOver.bind(this);
     this.handleOnMouseOut = this.handleOnMouseOut.bind(this);
   }
@@ -93,6 +94,13 @@ export default class Node extends React.Component {
     this.props.onClick(this.props.nodeData.id, evt);
   }
 
+  handleContextMenu(evt) {
+    const { onClick, nodeData, showTooltipOnCtxMenu } = this.props;
+    if (showTooltipOnCtxMenu) {
+      onClick(nodeData.id, evt, true);
+    }
+  }
+
   handleOnMouseOver(evt) {
     this.props.onMouseOver(this.props.nodeData.id, evt);
   }
@@ -120,27 +128,32 @@ export default class Node extends React.Component {
       styles,
       selected,
       onDeselect,
+      showTooltipOnCtxMenu,
     } = this.props;
+    const { initialStyle, transform } = this.state;
     const selectStyle = selected ? { ...styles.selectedNode } : {};
     const nodeStyle = nodeData._children
       ? { ...styles.node, ...selectStyle }
       : { ...styles.leafNode, ...selectStyle };
+    const showTooltip = showTooltipOnCtxMenu ? nodeData._ctxMenu : true;
     return (
       <g
         id={nodeData.id}
         ref={n => {
           this.node = n;
         }}
-        style={this.state.initialStyle}
+        style={initialStyle}
         className={nodeData._children ? 'nodeBase' : 'leafNodeBase'}
-        transform={this.state.transform}
+        transform={transform}
         onClick={this.handleClick}
+        onContextMenu={this.handleContextMenu}
         onMouseOver={this.handleOnMouseOver}
         onMouseOut={this.handleOnMouseOut}
       >
         {this.renderNodeElement(nodeStyle)}
 
         {selected &&
+          showTooltip &&
           allowForeignObjects &&
           nodeTooltipComponent && (
             <ForeignObjectElement
@@ -205,6 +218,7 @@ Node.propTypes = {
   textLayout: PropTypes.object.isRequired,
   subscriptions: PropTypes.object.isRequired, // eslint-disable-line react/no-unused-prop-types
   allowForeignObjects: PropTypes.bool.isRequired,
+  showTooltipOnCtxMenu: PropTypes.bool.isRequired,
   circleRadius: PropTypes.number,
   styles: PropTypes.object,
   selected: PropTypes.bool,

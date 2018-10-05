@@ -264,13 +264,19 @@ export default class Tree extends React.Component {
    *
    * @return {void}
    */
-  handleNodeToggle(nodeId, evt) {
+  handleNodeToggle(nodeId, evt, contextMenu) {
     const data = clone(this.state.data);
     const matches = this.findNodesById(nodeId, data, []);
     const targetNode = matches[0];
     const previousNode = this.state.targetNode;
+    if (previousNode) previousNode._ctxMenu = false;
+    targetNode._ctxMenu = !!contextMenu;
     if (this.handleOnClickCb(targetNode, evt, previousNode) !== false) {
-      if (this.props.collapsible && !this.state.isTransitioning) {
+      if (
+        (!this.props.showTooltipOnCtxMenu || !contextMenu) &&
+        this.props.collapsible &&
+        !this.state.isTransitioning
+      ) {
         if (targetNode._collapsed) {
           this.expandNode(targetNode);
           this.props.shouldCollapseNeighborNodes && this.collapseNeighborNodes(targetNode, data);
@@ -453,6 +459,7 @@ export default class Tree extends React.Component {
       circleRadius,
       allowForeignObjects,
       shouldHandleNodeSelection,
+      showTooltipOnCtxMenu,
       styles,
     } = this.props;
     const { translate, scale } = this.internalState.d3;
@@ -483,6 +490,7 @@ export default class Tree extends React.Component {
       onClick: this.handleNodeToggle,
       onMouseOver: this.handleOnMouseOverCb,
       onMouseOut: this.handleOnMouseOutCb,
+      showTooltipOnCtxMenu,
     };
 
     return (
@@ -571,6 +579,7 @@ Tree.defaultProps = {
   allowForeignObjects: false,
   shouldCollapseNeighborNodes: false,
   shouldHandleNodeSelection: false,
+  showTooltipOnCtxMenu: false,
   circleRadius: undefined, // TODO: DEPRECATE
   styles: {},
 };
@@ -620,6 +629,7 @@ Tree.propTypes = {
   allowForeignObjects: PropTypes.bool,
   shouldCollapseNeighborNodes: PropTypes.bool,
   shouldHandleNodeSelection: PropTypes.bool,
+  showTooltipOnCtxMenu: PropTypes.bool,
   circleRadius: PropTypes.number,
   styles: PropTypes.shape({
     nodes: PropTypes.object,
