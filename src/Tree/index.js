@@ -20,7 +20,6 @@ export default class Tree extends React.Component {
     };
     this.internalState = {
       initialRender: true,
-      targetNode: null,
       isTransitioning: false,
       d3: {
         scale: this.props.zoom,
@@ -147,8 +146,14 @@ export default class Tree extends React.Component {
    */
   assignInternalProperties(data) {
     return data.map(node => {
-      node.id = uuid.v4();
-      node._collapsed = false;
+      if (node.id) {
+        const matches = this.state ? this.findNodesById(node.id, this.state.data, []) : [];
+        node._collapsed = matches.length > 0 ? matches[0]._collapsed : false;
+      } else {
+        node.id = uuid.v4();
+        node._collapsed = false;
+      }
+
       // if there are children, recursively assign properties to them too
       if (node.children && node.children.length > 0) {
         node.children = this.assignInternalProperties(node.children);
